@@ -12,6 +12,7 @@ spec:
       labels:
         component: {{template "fullname" .}}
         role: data
+        es-cluster-name: {{ .Values.common.env.CLUSTER_NAME }}
       annotations:
         # Elasticsearch uses a hybrid mmapfs / niofs directory by default to
         # store its indices. The default operating system limits on mmap counts
@@ -69,3 +70,24 @@ spec:
         - emptyDir:
             medium: ""
           name: "storage"
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 1
+            preference:
+              matchExpressions:
+              - key: cloud.google.com/gke-preemptible
+                operator: DoesNotExist
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: es-cluster-name
+                operator: In
+                values:
+                - {{ .Values.common.env.CLUSTER_NAME }}
+              - key: role
+                operator: In
+                values:
+                - data
+            topologyKey: kubernetes.io/hostname
